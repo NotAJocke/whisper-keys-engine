@@ -29,8 +29,14 @@ fn main() -> anyhow::Result<()> {
             }
 
             let key_lowercase = format!("{}", KeyWrapper(key)).to_lowercase();
+            dbg!(&key_lowercase);
 
-            let filename = config.get(&key_lowercase).unwrap().to_string();
+            let filename = match config.get(&key_lowercase) {
+                Some(f) => f.to_string(),
+                None => config.get("unknown").unwrap().to_string(),
+            };
+            dbg!(&filename);
+
             let file = File::open(format!("assets/Cream/{}", filename)).unwrap();
             let data = BufReader::new(file);
             let source = Decoder::new(data).unwrap();
