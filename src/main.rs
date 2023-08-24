@@ -1,11 +1,12 @@
-use anyhow::Ok;
 use rdev::{listen, EventType, Key};
 use rodio::{self, Decoder, OutputStream, Sink};
 use std::{
     collections::HashMap,
+    ffi::OsString,
     fmt::Display,
     fs::{self, File},
     io::BufReader,
+    path::Path,
 };
 
 fn main() -> anyhow::Result<()> {
@@ -63,10 +64,67 @@ fn load_config_file() -> anyhow::Result<HashMap<String, String>> {
     Ok(parsed_content)
 }
 
+fn list_available_packs(folder: &str) -> anyhow::Result<Vec<OsString>> {
+    let files = fs::read_dir(folder)?;
+
+    let subdirs = files
+        .filter_map(|d| {
+            let entry = d.ok()?;
+            let path = entry.path();
+            if path.is_dir() {
+                Some(entry.file_name())
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<OsString>>();
+
+    let mut packs: Vec<OsString> = Vec::new();
+    for dir in subdirs.iter() {
+        let path = Path::new(folder).join(dir);
+        let files = fs::read_dir(path)?;
+        let filesnames = files
+            .filter_map(|f| {
+                let entry = f.ok()?;
+                let path = entry.path();
+                if path.is_file() {
+                    Some(entry.file_name())
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<OsString>>();
+        let has_config_file = filesnames.contains(&OsString::from("config.json"));
+
+        if has_config_file {
+            packs.push(dir.to_owned());
+        }
+    }
+
+    Ok(packs)
+}
+
 pub struct KeyWrapper(pub Key);
 
 impl Display for KeyWrapper {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_list_packs() {
+        let packs = list_available_packs("assets");
+
+        match packs {
+            Err(e) => panic!("{}", e),
+            Ok(p) => {
+                assert_eq!(p.len(), 2);
+            }
+        }
     }
 }
