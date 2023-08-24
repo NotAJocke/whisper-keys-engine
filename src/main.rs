@@ -28,10 +28,7 @@ fn main() -> anyhow::Result<()> {
                 }
             }
 
-            let mut key_lowercase = format!("{}", KeyWrapper(key)).to_lowercase();
-            if key_lowercase == "return" {
-                key_lowercase = "returnk".to_string();
-            }
+            let key_lowercase = format!("{}", KeyWrapper(key)).to_lowercase();
 
             let filename = config.get(&key_lowercase).unwrap().to_string();
             let file = File::open(format!("assets/Cream/{}", filename)).unwrap();
