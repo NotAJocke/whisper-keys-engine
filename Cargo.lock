@@ -391,6 +391,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c6201b9ff9fd90a5a3bac2e56a830d0caa509576f0e503818ee82c181b3437a"
 
 [[package]]
+name = "home"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5444c27eef6923071f7ebcc33e3444508466a76f7a2b93da00ed6e19f30c1ddb"
+dependencies = [
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "hound"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -990,18 +999,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "test-keyboard"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "dialoguer",
- "rdev",
- "rodio",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1149,6 +1146,19 @@ checksum = "9b85cbef8c220a6abc02aefd892dfc0fc23afb1c6a426316ec33253a3877249b"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "whisper-keys"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "dialoguer",
+ "home",
+ "rdev",
+ "rodio",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

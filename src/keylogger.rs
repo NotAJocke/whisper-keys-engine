@@ -1,15 +1,8 @@
 use anyhow::Result;
-use std::{fmt::Display, sync::mpsc::Sender, thread};
-
 use rdev::{self, EventType, Key};
+use std::{sync::mpsc::Sender, thread};
 
-pub struct KeyWrapper(pub Key);
-
-impl Display for KeyWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
-    }
-}
+use crate::key_wrapper::KeyWrapper;
 
 pub fn listen(tx: Sender<String>) -> Result<()> {
     thread::spawn(move || {
@@ -26,7 +19,7 @@ pub fn listen(tx: Sender<String>) -> Result<()> {
                     }
                 }
 
-                let key_lowercase = format!("{}", KeyWrapper(key)).to_lowercase();
+                let key_lowercase = KeyWrapper(key).to_lowercase();
 
                 tx.send(key_lowercase).unwrap();
 
@@ -35,7 +28,7 @@ pub fn listen(tx: Sender<String>) -> Result<()> {
 
             last_event_type = Some(event.event_type);
         })
-        .map_err(|e| anyhow::Error::msg(format!("{:#?}", e)))
+        .map_err(|e| format!("Couldn't start the keylogger.\n\nErr: {:?}", e))
         .unwrap();
     });
 

@@ -1,12 +1,13 @@
 [package]
-name = "test-keyboard"
-version = "0.1.0"
+name = "whisper-keys"
+version = "1.0.0"
 edition = "2021"
 
 
 [dependencies]
 anyhow = "1.0.75"
 dialoguer = "0.11.0"
+home = "0.5.5"
 rdev = "0.5.3"
 rodio = "0.17.1"
 serde = { version = "1.0.164", features = ["derive"] }

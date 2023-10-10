@@ -1,16 +1,27 @@
 use anyhow::{Context, Result};
+use home::home_dir;
 use rodio::{source::Buffered, Decoder, Source};
 use std::{
     collections::HashMap,
+    env::consts::OS,
     ffi::OsString,
     fs::{self, File},
     io::BufReader,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
-pub fn list_available(folder: &str) -> Result<Vec<String>> {
-    let items = fs::read_dir(folder).context("Folder do not exists or is unreadable.")?;
+use crate::APP_NAME;
 
+pub fn list_available_local() -> Result<Vec<String>> {
+    let local_dir = home_dir().context("Couldn't get your local dir.")?;
+    let path = match OS {
+        "windows" => Path::new(&local_dir)
+            .join("AppData")
+            .join("Roaming")
+            .join(APP_NAME),
+        _ => Path::new(&local_dir).join(APP_NAME),
+    };
+    let items = fs::read_dir(&path).context("Local dir do not exist or is unreadable.")?;
     let subdirs: Vec<OsString> = items
         .filter_map(|d| {
             let entry = d.ok()?;
@@ -25,7 +36,7 @@ pub fn list_available(folder: &str) -> Result<Vec<String>> {
 
     let mut packs: Vec<String> = Vec::new();
     for dir in subdirs.iter() {
-        let path = Path::new(folder).join(dir);
+        let path = Path::new(&path).join(dir);
         let files = fs::read_dir(path).unwrap();
         let filesnames = files
             .filter_map(|f| {
@@ -53,18 +64,20 @@ pub fn list_available(folder: &str) -> Result<Vec<String>> {
 }
 
 pub fn load_pack(
-    folder: &str,
+    folder: PathBuf,
     pack_name: &str,
 ) -> Result<HashMap<String, Buffered<Decoder<BufReader<File>>>>> {
-    let path = Path::new(folder).join(pack_name);
+    let path = Path::new(&folder).join(pack_name);
     let config = fs::read_to_string(path.join("config.json"))?;
-    let parsed_config: HashMap<String, String> = serde_json::from_str(&config)?;
+    let parsed_config: HashMap<String, String> =
+        serde_json::from_str(&config).context("Original config isn't valid")?;
 
     let mut final_config: HashMap<String, _> = HashMap::new();
     for (key, value) in parsed_config {
-        let file = File::open(path.join(value))?;
+        let filepath = path.join(value);
+        let file = File::open(&filepath).context(format!("Couldn't load file: {:?}", filepath))?;
         let buf = BufReader::new(file);
-        let source = Decoder::new(buf)?;
+        let source = Decoder::new(buf).context("Couldn't decode file")?;
         let buffered = Decoder::buffered(source);
 
         final_config.insert(key, buffered);

@@ -1,34 +1,56 @@
-use anyhow::Context;
-use dialoguer::{console::Term, theme::ColorfulTheme, Select};
-use rodio::{self, OutputStream};
-use std::sync::mpsc;
+use anyhow::{Context, Ok, Result};
+use home::home_dir;
+use std::{
+    env::{self, consts::OS},
+    fs,
+    path::Path,
+};
 
+mod commands;
+mod key_wrapper;
 mod keylogger;
+mod mechvibes;
 mod packs;
 mod player;
 
+static APP_NAME: &str = "WhisperKeys";
+
 fn main() -> anyhow::Result<()> {
-    let available_packs = packs::list_available("./assets")?;
-    let pack_idx = Select::with_theme(&ColorfulTheme::default())
-        .items(&available_packs)
-        .default(0)
-        .interact_on(&Term::stderr())
-        .unwrap_or(0);
-    let pack = available_packs[pack_idx].clone();
+    let args = env::args().collect::<Vec<String>>().split_off(1);
 
-    let config = packs::load_pack("./assets", &pack).context("Selected pack couldn't be loaded")?;
-    let (tx, rx) = mpsc::channel();
-    let (_stream, stream_handle) =
-        OutputStream::try_default().context("Couln't find an audio output channel")?;
+    init()?;
 
-    keylogger::listen(tx)?;
+    if !args.is_empty() {
+        match args[0].as_str() {
+            "--translate" | "-t" => {
+                if args.len() < 2 {
+                    println!("Please specify the path to the pack folder.");
+                    return Ok(());
+                }
+                commands::translate_config(&args[1])?;
+            }
+            "--generate-template" | "-g" => commands::generate_template("./")?,
+            _ => commands::run()?,
+        }
+    } else {
+        commands::run()?;
+    }
 
-    for msg in rx.iter() {
-        dbg!(&msg);
-        let buf = config
-            .get(&msg)
-            .unwrap_or_else(|| config.get("unknown").unwrap());
-        player::play_sound(stream_handle.clone(), buf.clone())?;
+    Ok(())
+}
+
+fn init() -> Result<()> {
+    let local_dir = home_dir().context("Couldn't find home directory")?;
+    let path = match OS {
+        "windows" => Path::new(&local_dir)
+            .join("AppData")
+            .join("Roaming")
+            .join(APP_NAME),
+        _ => Path::new(&local_dir).join(APP_NAME),
+    };
+
+    if fs::read_dir(&path).is_err() {
+        fs::create_dir_all(&path)?;
     }
 
     Ok(())
