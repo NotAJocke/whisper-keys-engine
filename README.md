@@ -42,4 +42,5 @@ $ whisper-keys --generate
 
 # Getting pre-made packs
 Join the [mechvibes Discord](https://discord.com/invite/MMVrhWxa4w) and look for the channel `#custom-soundpacks`. These soundpacks can be translated to Whisper Keys easily.
+
 Join the [WhisperKeys's Host Discord](https://discord.gg/NBrkFgWnc2)
