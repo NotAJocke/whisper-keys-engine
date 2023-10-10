@@ -1,69 +1,57 @@
-use anyhow::Ok;
-use rdev::{listen, EventType, Key};
-use rodio::{self, Decoder, OutputStream, Sink};
+use anyhow::{Context, Ok, Result};
+use home::home_dir;
 use std::{
-    collections::HashMap,
-    fmt::Display,
-    fs::{self, File},
-    io::BufReader,
+    env::{self, consts::OS},
+    fs,
+    path::Path,
 };
 
+mod commands;
+mod key_wrapper;
+mod keylogger;
+mod mechvibes;
+mod packs;
+mod player;
+
+static APP_NAME: &str = "WhisperKeys";
+
 fn main() -> anyhow::Result<()> {
-    let config = load_config_file()?;
+    let args = env::args().collect::<Vec<String>>().split_off(1);
 
-    let (_stream, stream_handle) = OutputStream::try_default()?;
+    init()?;
 
-    let mut last_key: Option<Key> = None;
-    let mut last_event_type: Option<EventType> = None;
-
-    listen(move |event| {
-        if let EventType::KeyPress(key) = event.event_type {
-            println!("KeyPress: {:?}", key);
-
-            if let (Some(lastk), Some(laste)) = (last_key, last_event_type) {
-                if lastk == key {
-                    if let EventType::KeyPress(_) = laste {
-                        return;
-                    }
+    if !args.is_empty() {
+        match args[0].as_str() {
+            "--translate" | "-t" => {
+                if args.len() < 2 {
+                    println!("Please specify the path to the pack folder.");
+                    return Ok(());
                 }
+                commands::translate_config(&args[1])?;
             }
-
-            let mut key_lowercase = format!("{}", KeyWrapper(key)).to_lowercase();
-            if key_lowercase == "return" {
-                key_lowercase = "returnk".to_string();
-            }
-
-            let filename = config.get(&key_lowercase).unwrap().to_string();
-            let file = File::open(format!("assets/Cream/{}", filename)).unwrap();
-            let data = BufReader::new(file);
-            let source = Decoder::new(data).unwrap();
-            let sink = Sink::try_new(&stream_handle).unwrap();
-
-            sink.set_volume(1.0);
-            sink.append(source);
-            sink.detach();
-
-            last_key = Some(key);
+            "--generate-template" | "-g" => commands::generate_template("./")?,
+            _ => commands::run()?,
         }
-
-        last_event_type = Some(event.event_type);
-    })
-    .map_err(|e| anyhow::Error::msg(format!("{:#?}", e)))?;
+    } else {
+        commands::run()?;
+    }
 
     Ok(())
 }
 
-fn load_config_file() -> anyhow::Result<HashMap<String, String>> {
-    let file_content = fs::read_to_string("./assets/Cream/config.json")?;
-    let parsed_content: HashMap<String, String> = serde_json::from_str(&file_content)?;
+fn init() -> Result<()> {
+    let local_dir = home_dir().context("Couldn't find home directory")?;
+    let path = match OS {
+        "windows" => Path::new(&local_dir)
+            .join("AppData")
+            .join("Roaming")
+            .join(APP_NAME),
+        _ => Path::new(&local_dir).join(APP_NAME),
+    };
 
-    Ok(parsed_content)
-}
-
-pub struct KeyWrapper(pub Key);
-
-impl Display for KeyWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.0)
+    if fs::read_dir(&path).is_err() {
+        fs::create_dir_all(&path)?;
     }
+
+    Ok(())
 }
