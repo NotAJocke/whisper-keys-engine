@@ -63,25 +63,43 @@ pub fn list_available_local() -> Result<Vec<String>> {
     Ok(subdirs_str)
 }
 
-pub fn load_pack(
-    folder: PathBuf,
-    pack_name: &str,
-) -> Result<HashMap<String, Buffered<Decoder<BufReader<File>>>>> {
+#[derive(serde::Deserialize, Debug, serde::Serialize)]
+pub struct Config {
+    pub creator: String,
+    pub source: String,
+    pub keys_default_volume: String,
+    pub keys: HashMap<String, String>,
+}
+
+pub struct Pack {
+    pub keys_default_volume: f32,
+    pub keys: HashMap<String, Buffered<Decoder<BufReader<File>>>>,
+}
+
+pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
     let path = Path::new(&folder).join(pack_name);
     let config = fs::read_to_string(path.join("config.json"))?;
-    let parsed_config: HashMap<String, String> =
+    let parsed_config: Config =
         serde_json::from_str(&config).context("Original config isn't valid")?;
 
-    let mut final_config: HashMap<String, _> = HashMap::new();
-    for (key, value) in parsed_config {
+    let mut pack_keys: HashMap<String, _> = HashMap::new();
+    for (key, value) in parsed_config.keys {
         let filepath = path.join(value);
         let file = File::open(&filepath).context(format!("Couldn't load file: {:?}", filepath))?;
         let buf = BufReader::new(file);
         let source = Decoder::new(buf).context("Couldn't decode file")?;
         let buffered = Decoder::buffered(source);
 
-        final_config.insert(key, buffered);
+        pack_keys.insert(key, buffered);
     }
 
-    Ok(final_config)
+    let pack = Pack {
+        keys_default_volume: parsed_config
+            .keys_default_volume
+            .parse::<f32>()
+            .context("Couldn't parse default volume")?,
+        keys: pack_keys,
+    };
+
+    Ok(pack)
 }

@@ -36,9 +36,9 @@ pub fn run() -> Result<()> {
 
     keylogger::listen(tx)?;
 
-    let sound_level: Arc<Mutex<f32>> = Arc::new(Mutex::new(50f32));
+    let sound_level: Arc<Mutex<f32>> = Arc::new(Mutex::new(config.keys_default_volume));
     let sound_level_lock = Arc::clone(&sound_level);
-    println!("Volume set to 50%");
+    println!("Volume set to {}%", config.keys_default_volume);
     thread::spawn(move || loop {
         let new_sound_level: f32 = Input::new()
             .with_prompt("Enter the new volume:")
@@ -52,8 +52,9 @@ pub fn run() -> Result<()> {
         if cfg!(debug_assertions) {
             dbg!(&msg);
         }
-        let buf = config.get(&msg).unwrap_or_else(|| {
+        let buf = config.keys.get(&msg).unwrap_or_else(|| {
             config
+                .keys
                 .get("unknown")
                 .context("Couln't get proprety 'unknown' in config file.")
                 .unwrap()

@@ -5,6 +5,8 @@ Little side project that I made for myself and few friends, rewrite of the initi
 As I previously said it's a rewrite of Mechvibes, a little software that emulates the sound of a mechanical keyword when you type, your coworkers and wallet will thank you.
 
 # State
+Windows isn't officially supported, but it should work, if you have any problem, please open an issue.
+
 At the moment there's only a CLI version, I'm planning to make a GUI version, but there's a problem with the lib that I'm using to listen to keyboard events, so I'm waiting for a fix.
 
 This is only a rewrite of mechvibes, and not __yet__ of mechvibes++ (though I'm planning to do it).
@@ -13,7 +15,13 @@ This is only a rewrite of mechvibes, and not __yet__ of mechvibes++ (though I'm 
 Add your soundpacks, you can choose between them at startup. There's also a translater between mechvibes config and whisper-keys config, trying to be as easy as possible to switch.
 
 # Installation
-You can download the latest release [here](https://github.com/NotAJocke/whisper-keys/releases/latest) and add it to your path, or you can build it yourself if your binary isn't available.
+### Binaries for MacOS and Linux
+```bash
+curl -sSL https://raw.githubusercontent.com/NotAJocke/whisper-keys/main/install.sh | bash
+```
+If you have any problem with the script, please open an issue.
+
+Atm, there's no binaries for Windows and MacOS x86_64, but you can build it yourself.
 
 ### Build
 Requirement: [Rust toolchain](https://www.rust-lang.org/tools/install)
@@ -44,3 +52,27 @@ $ whisper-keys --generate
 Join the [mechvibes Discord](https://discord.com/invite/MMVrhWxa4w) and look for the channel `#custom-soundpacks`. These soundpacks can be translated to Whisper Keys easily.
 
 Join the [WhisperKeys's Host Discord](https://discord.gg/NBrkFgWnc2)
+
+# Migrating from v1
+To migrate from v1, open your config files and edit accordingly:
+
+*old config*
+```json
+{
+  "space": "spacebar.wav",
+  ...
+}
+```
+
+*new config*
+```json
+{
+  "creator": "",
+  "source": "",
+  "keys_default_volume": "50", # this is in percent
+  "keys": {
+    "space": "spacebar",
+    ...
+  }
+}
+```

@@ -3,7 +3,7 @@ use rdev::Key;
 use serde_json::Value;
 use std::{collections::HashMap, fs, path::Path};
 
-use crate::key_wrapper::KeyWrapper;
+use crate::{key_wrapper::KeyWrapper, packs::Config};
 
 #[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
@@ -17,7 +17,7 @@ pub fn translate_config(path: &str) -> Result<()> {
         fs::read_to_string(&config_path).context("File doesn't exists or is unreachable.")?;
     let parsed_config: MechVibes =
         serde_json::from_str(&config).context("Couldn't parse the config file.")?;
-    let mut template: HashMap<String, Value> = HashMap::new();
+    let mut template: HashMap<String, String> = HashMap::new();
 
     for (key, value) in parsed_config
         .defines
@@ -29,7 +29,7 @@ pub fn translate_config(path: &str) -> Result<()> {
                 key.parse::<u16>()
                     .context("Unknown value in original config")?,
             );
-            template.insert(KeyWrapper(k).to_lowercase(), value.to_owned());
+            template.insert(KeyWrapper(k).to_lowercase(), value.as_str().unwrap().into());
         }
     }
 
@@ -41,10 +41,16 @@ pub fn translate_config(path: &str) -> Result<()> {
             Please add a key named \"unknown\" to your config."
         );
     }
-    fs::rename(&config_path, config_path.with_extension("json.bak"))?;
 
-    // write to a new file
-    let serialized = serde_json::to_string_pretty(&template)?;
+    let pack = Config {
+        creator: "".into(),
+        source: "".into(),
+        keys_default_volume: "50".into(),
+        keys: template,
+    };
+    let serialized = serde_json::to_string_pretty(&pack)?;
+
+    fs::rename(&config_path, config_path.with_extension("json.bak"))?;
     fs::write(&config_path, serialized)?;
 
     Ok(())
