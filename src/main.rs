@@ -30,6 +30,7 @@ fn main() -> anyhow::Result<()> {
                 commands::translate_config(&args[1])?;
             }
             "--generate-template" | "-g" => commands::generate_template("./")?,
+            "-v" | "--version" => println!("{} v{}", APP_NAME, env!("CARGO_PKG_VERSION")),
             _ => commands::run()?,
         }
     } else {
