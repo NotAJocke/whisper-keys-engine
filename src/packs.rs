@@ -72,6 +72,7 @@ pub struct Config {
 }
 
 pub struct Pack {
+    pub name: String,
     pub keys_default_volume: f32,
     pub keys: HashMap<String, Buffered<Decoder<BufReader<File>>>>,
 }
@@ -94,6 +95,7 @@ pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
     }
 
     let pack = Pack {
+        name: pack_name.to_owned(),
         keys_default_volume: parsed_config
             .keys_default_volume
             .parse::<f32>()
