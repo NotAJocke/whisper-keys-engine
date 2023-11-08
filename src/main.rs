@@ -12,10 +12,12 @@ mod keylogger;
 mod mechvibes;
 mod packs;
 mod player;
+mod server;
 
 static APP_NAME: &str = "WhisperKeys";
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let args = env::args().collect::<Vec<String>>().split_off(1);
 
     init()?;
@@ -31,6 +33,7 @@ fn main() -> anyhow::Result<()> {
             }
             "--generate-template" | "-g" => commands::generate_template("./")?,
             "-v" | "--version" => println!("{} v{}", APP_NAME, env!("CARGO_PKG_VERSION")),
+            "--rpc" | "--grpc" => server::serve().await.unwrap(),
             _ => commands::run()?,
         }
     } else {
