@@ -1,6 +1,6 @@
 [package]
-name = "whisper-keys"
-version = "2.0.0"
+name = "whisper-keys-engine"
+version = "2.1.0"
 edition = "2021"
 
 
