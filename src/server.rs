@@ -115,13 +115,12 @@ pub async fn serve() -> Result<(), Box<dyn error::Error>> {
                         None => panic!("Couldn't find 'unknown' key in pack"),
                     });
 
-                match player::play_sound(
+                if let Err(e) = player::play_sound(
                     stream_handle.clone(),
                     buf.clone(),
-                    cloned_volume.lock().unwrap().clone(),
+                    *cloned_volume.lock().unwrap(),
                 ) {
-                    Err(e) => eprintln!("Error playing sound: {}", e),
-                    _ => {}
+                    eprintln!("Error playing sound: {}", e);
                 }
             }
         }
