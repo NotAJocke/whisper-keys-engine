@@ -40,7 +40,7 @@ if [ ! -d "/usr/local/bin" ]; then
 	sudo mkdir -p /usr/local/bin
 fi
 
-if ! sudo mv "$temp_dir/$repo-$os-$arch/whisper-keys-engine" /usr/local/bin/; then
+if ! sudo mv "$temp_dir/$repo-$os-$arch/whisper-keys-engine" /usr/local/bin/whisper-keys; then
 	echo "Failed to move the binary to /usr/local/bin."
 	exit 1
 fi
