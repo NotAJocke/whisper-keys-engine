@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use home::home_dir;
+use rayon::prelude::*;
 use rodio::{source::Buffered, Decoder, Source};
 use std::{
     collections::HashMap,
@@ -72,6 +73,7 @@ pub struct Config {
 }
 
 pub struct Pack {
+    pub name: String,
     pub keys_default_volume: f32,
     pub keys: HashMap<String, Buffered<Decoder<BufReader<File>>>>,
 }
@@ -82,18 +84,22 @@ pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
     let parsed_config: Config =
         serde_json::from_str(&config).context("Original config isn't valid")?;
 
-    let mut pack_keys: HashMap<String, _> = HashMap::new();
-    for (key, value) in parsed_config.keys {
-        let filepath = path.join(value);
-        let file = File::open(&filepath).context(format!("Couldn't load file: {:?}", filepath))?;
-        let buf = BufReader::new(file);
-        let source = Decoder::new(buf).context("Couldn't decode file")?;
-        let buffered = Decoder::buffered(source);
-
-        pack_keys.insert(key, buffered);
-    }
+    let pack_keys = parsed_config
+        .keys
+        .par_iter()
+        .map(|(key, value)| {
+            let filepath = path.join(value);
+            let file =
+                File::open(&filepath).context(format!("Couldn't load file: {:?}", filepath))?;
+            let buf = BufReader::new(file);
+            let source = Decoder::new(buf).context("Couldn't decode file")?;
+            let buffered = Decoder::buffered(source);
+            Ok((key.to_owned(), buffered))
+        })
+        .collect::<Result<HashMap<String, Buffered<Decoder<BufReader<File>>>>>>()?;
 
     let pack = Pack {
+        name: pack_name.to_owned(),
         keys_default_volume: parsed_config
             .keys_default_volume
             .parse::<f32>()

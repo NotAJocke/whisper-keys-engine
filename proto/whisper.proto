@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package whisper;
+
+service WhisperKeys {
+  rpc GetPacks(GetPacksReq) returns (Packs);
+  rpc SetPack(SetPackReq) returns (SetPackRes);
+  rpc SetVolume(SetVolumeReq) returns (SetVolumeRes);
+}
+
+message GetPacksReq {}
+
+message Packs {
+  repeated string packs = 1;
+}
+
+message SetPackReq {
+  string pack = 1;
+}
+
+message SetPackRes {
+    string pack = 1;
+    float volume = 2;
+}
+
+message SetVolumeReq {
+    float volume = 1;
+}
+
+message SetVolumeRes {
+    float volume = 1;
+}
