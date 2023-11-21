@@ -3,6 +3,14 @@
 
 Although you can use this as a CLI version, if you want/need a super lightweight version.
 
+<details>
+  <summary>Screenshots</summary>
+
+  ![Pack selection](./images/packs.png)
+
+  ![Main](./images/main.png)
+</details>
+
 ## What is this project?
 It's a little software that emulates the sound of a mechanical keyboard when you type. It's a rewrite of [Mechvibes](https://github.com/hainguyents13/mechvibes) in rust to be more lightweight and faster.
 
