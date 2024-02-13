@@ -51,7 +51,7 @@ pub fn translate_config(path: &str) -> Result<()> {
     let serialized = serde_json::to_string_pretty(&pack)?;
 
     fs::rename(&config_path, config_path.with_extension("json.bak"))?;
-    fs::write(&config_path, serialized)?;
+    fs::write(Path::new(path).join("config.json5"), serialized)?;
 
     Ok(())
 }

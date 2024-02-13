@@ -116,8 +116,8 @@ pub fn run() -> Result<()> {
 pub fn generate_template(path: &str) -> Result<()> {
     let pack_path = Path::new(path).join("Pack_Name");
     fs::create_dir_all(&pack_path)?;
-    let template = include_str!("config_template.json");
-    fs::write(pack_path.join("config.json"), template)?;
+    let template = include_str!("config_template.json5");
+    fs::write(pack_path.join("config.json5"), template)?;
 
     Ok(())
 }

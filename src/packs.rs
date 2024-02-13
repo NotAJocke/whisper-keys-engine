@@ -80,9 +80,11 @@ pub struct Pack {
 
 pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
     let path = Path::new(&folder).join(pack_name);
-    let config = fs::read_to_string(path.join("config.json"))?;
-    let parsed_config: Config =
-        serde_json::from_str(&config).context("Original config isn't valid")?;
+    let config = match fs::read_to_string(path.join("config.json5")) {
+        Ok(config) => config,
+        Err(_) => fs::read_to_string(path.join("config.json"))?,
+    };
+    let parsed_config: Config = json5::from_str(&config).context("Original config isn't valid")?;
 
     let pack_keys = parsed_config
         .keys
