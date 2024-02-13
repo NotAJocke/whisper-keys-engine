@@ -2,8 +2,8 @@ use anyhow::{Context, Result};
 use home::home_dir;
 use rayon::prelude::*;
 use rodio::{source::Buffered, Decoder, Source};
+use rustc_hash::FxHashMap;
 use std::{
-    collections::HashMap,
     env::consts::OS,
     ffi::OsString,
     fs::{self, File},
@@ -69,13 +69,13 @@ pub struct Config {
     pub creator: String,
     pub source: String,
     pub keys_default_volume: String,
-    pub keys: HashMap<String, String>,
+    pub keys: FxHashMap<String, String>,
 }
 
 pub struct Pack {
     pub name: String,
     pub keys_default_volume: f32,
-    pub keys: HashMap<String, Buffered<Decoder<BufReader<File>>>>,
+    pub keys: FxHashMap<String, Buffered<Decoder<BufReader<File>>>>,
 }
 
 pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
@@ -98,7 +98,7 @@ pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
             let buffered = Decoder::buffered(source);
             Ok((key.to_owned(), buffered))
         })
-        .collect::<Result<HashMap<String, Buffered<Decoder<BufReader<File>>>>>>()?;
+        .collect::<Result<FxHashMap<String, Buffered<Decoder<BufReader<File>>>>>>()?;
 
     let pack = Pack {
         name: pack_name.to_owned(),

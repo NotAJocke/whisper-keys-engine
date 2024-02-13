@@ -92,9 +92,6 @@ pub fn run() -> Result<()> {
     });
 
     for msg in rx.iter() {
-        if cfg!(debug_assertions) {
-            // dbg!(&msg);
-        }
         let pack_lock = current_pack.lock().unwrap();
         let buf = pack_lock.keys.get(&msg).unwrap_or_else(|| {
             pack_lock

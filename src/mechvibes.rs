@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use rdev::Key;
+use rustc_hash::FxHashMap;
 use serde_json::Value;
-use std::{collections::HashMap, fs, path::Path};
+use std::{fs, path::Path};
 
 use crate::{key_wrapper::KeyWrapper, packs::Config};
 
@@ -17,7 +18,7 @@ pub fn translate_config(path: &str) -> Result<()> {
         fs::read_to_string(&config_path).context("File doesn't exists or is unreachable.")?;
     let parsed_config: MechVibes =
         serde_json::from_str(&config).context("Couldn't parse the config file.")?;
-    let mut template: HashMap<String, String> = HashMap::new();
+    let mut template: FxHashMap<String, String> = FxHashMap::default();
 
     for (key, value) in parsed_config
         .defines
