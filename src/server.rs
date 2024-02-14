@@ -2,6 +2,7 @@ use std::path::Path;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{error, thread};
 
+use home::home_dir;
 use rodio::OutputStream;
 use tonic::{transport::Server, Request, Response, Status};
 
@@ -27,7 +28,12 @@ struct WhisperService {
 #[tonic::async_trait]
 impl WhisperKeys for WhisperService {
     async fn get_packs(&self, _: Request<GetPacksReq>) -> Result<Response<Packs>, Status> {
-        let packs = packs::list_available_local();
+        let home_dir = match home_dir() {
+            Some(path) => path,
+            None => return Err(Status::failed_precondition("Couldn't find home directory")),
+        };
+        let packs_folder = Path::new(&home_dir).join(APP_NAME);
+        let packs = packs::list_available(&packs_folder);
 
         match packs {
             Ok(packs) => {
@@ -55,7 +61,7 @@ impl WhisperKeys for WhisperService {
 
         let packs_folder = Path::new(&home_dir).join(APP_NAME);
 
-        let pack = match packs::load_pack(packs_folder, &pack_name) {
+        let pack = match packs::load_pack(&packs_folder, &pack_name) {
             Ok(pack) => pack,
             Err(e) => return Err(Status::failed_precondition(e.to_string())),
         };

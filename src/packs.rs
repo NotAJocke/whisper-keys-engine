@@ -1,27 +1,23 @@
 use anyhow::{Context, Result};
-use home::home_dir;
 use rayon::prelude::*;
 use rodio::{source::Buffered, Decoder, Source};
 use rustc_hash::FxHashMap;
 use std::{
-    env::consts::OS,
     ffi::OsString,
     fs::{self, File},
     io::BufReader,
     path::{Path, PathBuf},
 };
 
-use crate::APP_NAME;
-
-pub fn list_available_local() -> Result<Vec<String>> {
-    let local_dir = home_dir().context("Couldn't get your local dir.")?;
+pub fn list_available(path: &PathBuf) -> Result<Vec<String>> {
+    /*let local_dir = home_dir().context("Couldn't get your local dir.")?;
     let path = match OS {
         "windows" => Path::new(&local_dir)
             .join("AppData")
             .join("Roaming")
             .join(APP_NAME),
         _ => Path::new(&local_dir).join(APP_NAME),
-    };
+    };*/
     let items = fs::read_dir(&path).context("Local dir do not exist or is unreadable.")?;
     let subdirs: Vec<OsString> = items
         .filter_map(|d| {
@@ -78,7 +74,7 @@ pub struct Pack {
     pub keys: FxHashMap<String, Buffered<Decoder<BufReader<File>>>>,
 }
 
-pub fn load_pack(folder: PathBuf, pack_name: &str) -> Result<Pack> {
+pub fn load_pack(folder: &PathBuf, pack_name: &str) -> Result<Pack> {
     let path = Path::new(&folder).join(pack_name);
     let config = match fs::read_to_string(path.join("config.json5")) {
         Ok(config) => config,

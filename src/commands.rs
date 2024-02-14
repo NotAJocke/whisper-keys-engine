@@ -16,9 +16,10 @@ use home::home_dir;
 use rodio::OutputStream;
 
 fn ask_for_pack() -> Result<Pack> {
-    let available_packs = packs::list_available_local().context("Couln't get local packs")?;
     let home_dir = home_dir().context("Couldn't find home directory")?;
     let packs_folder = Path::new(&home_dir).join(APP_NAME);
+    let available_packs =
+        packs::list_available(&packs_folder).context("Couln't get local packs")?;
 
     if available_packs.is_empty() {
         return Err(anyhow::anyhow!("No custom pack found."));
@@ -32,7 +33,7 @@ fn ask_for_pack() -> Result<Pack> {
     let pack_name = available_packs[pack_idx].clone();
 
     let pack =
-        packs::load_pack(packs_folder, &pack_name).context("Selected pack couldn't be loaded")?;
+        packs::load_pack(&packs_folder, &pack_name).context("Selected pack couldn't be loaded")?;
 
     Ok(pack)
 }
