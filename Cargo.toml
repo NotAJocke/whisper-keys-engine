@@ -21,3 +21,18 @@ rustc-hash = "1.1.0"
 
 [build-dependencies]
 tonic-build = "0.10.2"
+
+[[bench]]
+name = "main"
+harness = false
+
+[[bench]]
+name = "packs"
+harness = false
+
+[[bench]]
+name = "player"
+harness = false
+
+[dev-dependencies]
+criterion = "0.5.1"

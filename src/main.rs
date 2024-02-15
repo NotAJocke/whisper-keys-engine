@@ -6,15 +6,7 @@ use std::{
     path::Path,
 };
 
-mod commands;
-mod key_wrapper;
-mod keylogger;
-mod mechvibes;
-mod packs;
-mod player;
-mod server;
-
-static APP_NAME: &str = "WhisperKeys";
+use whisper_keys_engine::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

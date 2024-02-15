@@ -68,6 +68,7 @@ pub struct Config {
     pub keys: FxHashMap<String, String>,
 }
 
+#[derive(Clone)]
 pub struct Pack {
     pub name: String,
     pub keys_default_volume: f32,
