@@ -1,13 +1,13 @@
 use std::{
     fs,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{mpsc, Arc, Mutex},
     thread,
 };
 
 use crate::{
     keylogger, mechvibes,
-    packs::{self, Pack},
+    packs::{self},
     player, APP_NAME,
 };
 use anyhow::{Context, Result};
@@ -15,9 +15,7 @@ use dialoguer::{console::Term, theme::ColorfulTheme, Input, Select};
 use home::home_dir;
 use rodio::OutputStream;
 
-fn ask_for_pack() -> Result<Pack> {
-    let home_dir = home_dir().context("Couldn't find home directory")?;
-    let packs_folder = Path::new(&home_dir).join(APP_NAME);
+fn ask_for_pack(packs_folder: &PathBuf) -> Result<String> {
     let available_packs =
         packs::list_available(&packs_folder).context("Couln't get local packs")?;
 
@@ -32,14 +30,17 @@ fn ask_for_pack() -> Result<Pack> {
         .unwrap_or(0);
     let pack_name = available_packs[pack_idx].clone();
 
-    let pack =
-        packs::load_pack(&packs_folder, &pack_name).context("Selected pack couldn't be loaded")?;
-
-    Ok(pack)
+    Ok(pack_name)
 }
 
 pub fn run() -> Result<()> {
-    let pack = ask_for_pack()?;
+    let home_dir = home_dir().context("Couldn't find home directory")?;
+    let packs_folder = Path::new(&home_dir).join(APP_NAME);
+
+    let pack_name = ask_for_pack(&packs_folder)?;
+    let pack =
+        packs::load_pack(&packs_folder, &pack_name).context("Selected pack couldn't be loaded")?;
+
     let default_volume = pack.keys_default_volume;
 
     Term::stdout().clear_screen().unwrap();
@@ -70,18 +71,28 @@ pub fn run() -> Result<()> {
 
         match action {
             0 => {
+                let current_sound = *cloned_sound_level.lock().unwrap();
                 let input: f32 = Input::new()
+                    .allow_empty(true)
                     .with_prompt("Enter the new volume")
+                    .default(current_sound)
+                    .show_default(false)
                     .interact_text()
                     .unwrap();
 
-                *cloned_sound_level.lock().unwrap() = input;
+                if input != current_sound {
+                    *cloned_sound_level.lock().unwrap() = input;
+                }
             }
             _ => {
-                let pack = ask_for_pack().unwrap();
+                let current_pack_name = &*cloned_current_pack.lock().unwrap().name;
+                let pack_name = ask_for_pack(&packs_folder).unwrap();
 
-                *cloned_sound_level.lock().unwrap() = pack.keys_default_volume;
-                *cloned_current_pack.lock().unwrap() = pack;
+                if pack_name != current_pack_name {
+                    let pack = packs::load_pack(&packs_folder, &pack_name).unwrap();
+                    *cloned_sound_level.lock().unwrap() = pack.keys_default_volume;
+                    *cloned_current_pack.lock().unwrap() = pack;
+                }
             }
         }
         Term::stdout().clear_screen().unwrap();
