@@ -6,27 +6,24 @@ service WhisperKeys {
   rpc GetPacks(GetPacksReq) returns (Packs);
   rpc SetPack(SetPackReq) returns (SetPackRes);
   rpc SetVolume(SetVolumeReq) returns (SetVolumeRes);
+  rpc Translate(TranslateReq) returns (TranslateRes);
 }
 
 message GetPacksReq {}
 
-message Packs {
-  repeated string packs = 1;
-}
+message Packs { repeated string packs = 1; }
 
-message SetPackReq {
-  string pack = 1;
-}
+message SetPackReq { string pack = 1; }
 
 message SetPackRes {
-    string pack = 1;
-    float volume = 2;
+  string pack = 1;
+  float volume = 2;
 }
 
-message SetVolumeReq {
-    float volume = 1;
-}
+message SetVolumeReq { float volume = 1; }
 
-message SetVolumeRes {
-    float volume = 1;
-}
+message SetVolumeRes { float volume = 1; }
+
+message TranslateReq { string path = 1; }
+
+message TranslateRes {}

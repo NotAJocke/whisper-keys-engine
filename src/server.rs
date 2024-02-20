@@ -9,10 +9,13 @@ use tonic::{transport::Server, Request, Response, Status};
 use whisper::whisper_keys_server::{WhisperKeys, WhisperKeysServer};
 use whisper::{GetPacksReq, Packs};
 
+use crate::commands::translate_config;
 use crate::packs::{self, Pack};
 use crate::{keylogger, player, APP_NAME};
 
-use self::whisper::{SetPackReq, SetPackRes, SetVolumeReq, SetVolumeRes};
+use self::whisper::{
+    SetPackReq, SetPackRes, SetVolumeReq, SetVolumeRes, TranslateReq, TranslateRes,
+};
 
 pub mod whisper {
     tonic::include_proto!("whisper");
@@ -87,6 +90,19 @@ impl WhisperKeys for WhisperService {
         *self.volume.lock().unwrap() = volume;
 
         Ok(Response::new(res))
+    }
+
+    async fn translate(
+        &self,
+        req: Request<TranslateReq>,
+    ) -> Result<Response<TranslateRes>, Status> {
+        let path = req.into_inner().path;
+        let res = translate_config(&path);
+
+        match res {
+            Ok(_) => Ok(Response::new(TranslateRes {})),
+            Err(e) => Err(Status::failed_precondition(e.to_string())),
+        }
     }
 }
 
