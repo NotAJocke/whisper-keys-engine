@@ -1,54 +1,73 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use home::home_dir;
-use rodio::OutputStream;
 use std::{
     path::Path,
-    sync::{atomic::AtomicU8, Arc, Mutex, RwLock},
-    thread::{self},
+    sync::{
+        atomic::{AtomicU8, Ordering},
+        Arc, Mutex, RwLock,
+    },
+    thread, time,
 };
-use whisper_keys_engine::{packs, player, APP_NAME};
+
+use criterion::{criterion_group, criterion_main, Criterion};
+use whisper_keys_engine::{packs, APP_NAME};
 
 fn bench_integral(c: &mut Criterion) {
-    let home_dir = home_dir().unwrap();
+    let mut group = c.benchmark_group("Main");
+    let amount = 20;
+
+    let home_dir = home::home_dir().unwrap();
     let packs_folder = Path::new(&home_dir).join(APP_NAME);
     let pack_name = "nk-cream";
     let pack = packs::load_pack(&packs_folder, pack_name).unwrap();
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    let default_volume = pack.keys_default_volume;
 
-    let arc_pack = Arc::new(Mutex::new(pack.clone()));
-    let arc_volume = Arc::new(Mutex::new(default_volume));
-    let arc_pack2 = Arc::new(RwLock::new(pack));
-    let arc_volume2 = Arc::new(AtomicU8::new(100));
+    let volume_f = pack.keys_default_volume;
+    let volume_u: u8 = pack.keys_default_volume as u8;
+    let keys = pack.keys;
 
-    let mut group = c.benchmark_group("Main");
+    let (_stream, stream_handle) = rodio::OutputStream::try_default().unwrap();
 
-    group.bench_function("bench_integral mutexes", |b| {
+    group.bench_function(format!("{} sounds played with mutexes", amount), |b| {
         b.iter(|| {
-            let pack_lock = arc_pack.lock().unwrap();
-            let buf = pack_lock.keys.get(black_box("keyq")).unwrap();
-            let volume = *arc_volume.lock().unwrap();
+            let keys_arc = Arc::new(Mutex::new(keys.clone()));
+            let volume_arc = Arc::new(Mutex::new(volume_f));
 
-            let stream_handle_clone = stream_handle.clone();
-            let buf_clone = buf.clone();
-            thread::spawn(move || {
-                player::play_sound(stream_handle_clone, buf_clone, volume).unwrap();
-            });
+            for _ in 0..amount {
+                let keys_lock = keys_arc.lock().unwrap();
+                let volume = *volume_arc.lock().unwrap();
+
+                let key = keys_lock.get("keyq").unwrap();
+
+                let sink = rodio::Sink::try_new(&stream_handle).unwrap();
+                sink.set_volume(volume * 0.01);
+                sink.append(key.clone());
+                sink.detach();
+
+                thread::sleep(time::Duration::from_millis(50));
+            }
         });
     });
-    group.bench_function("bench_integral atomic + rwLock", |b| {
-        b.iter(|| {
-            let pack_lock = arc_pack2.read().unwrap();
-            let buf = pack_lock.keys.get(black_box("keyq")).unwrap();
-            let volume = arc_volume2.load(std::sync::atomic::Ordering::Relaxed) as f32;
+    group.bench_function(
+        format!("{} sounds played with rwlock + atomics", amount),
+        |b| {
+            b.iter(|| {
+                let keys_rw = RwLock::new(keys.clone());
+                let volume = AtomicU8::new(volume_u);
 
-            let stream_handle_clone = stream_handle.clone();
-            let buf_clone = buf.clone();
-            thread::spawn(move || {
-                player::play_sound(stream_handle_clone, buf_clone, volume).unwrap();
+                for _ in 0..amount {
+                    let keys_reader = keys_rw.read().unwrap();
+
+                    let key = keys_reader.get("keyq").unwrap();
+
+                    let sink = rodio::Sink::try_new(&stream_handle).unwrap();
+                    let volume_cast = volume.load(Ordering::Relaxed) as f32;
+                    sink.set_volume(volume_cast * 0.01);
+                    sink.append(key.clone());
+                    sink.detach();
+
+                    thread::sleep(time::Duration::from_millis(50));
+                }
             });
-        });
-    });
+        },
+    );
 
     group.finish();
 }
