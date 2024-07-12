@@ -1,35 +1,21 @@
 use anyhow::{Context, Ok, Result};
+use clap::Parser;
 use home::home_dir;
-use std::{
-    env::{self, consts::OS},
-    fs,
-    path::Path,
-};
+use std::{env::consts::OS, fs, path::Path};
 
-use whisper_keys_engine::*;
+use whisper_keys_engine::{program_args::SubCommands, *};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let args = env::args().collect::<Vec<String>>().split_off(1);
-
     init()?;
 
-    if !args.is_empty() {
-        match args[0].as_str() {
-            "--translate" | "-t" => {
-                if args.len() < 2 {
-                    println!("Please specify the path to the pack folder.");
-                    return Ok(());
-                }
-                commands::translate_config(&args[1])?;
-            }
-            "--generate-template" | "-g" => commands::generate_template("./")?,
-            "-v" | "--version" => println!("{} v{}", APP_NAME, env!("CARGO_PKG_VERSION")),
-            "--rpc" | "--grpc" => server::serve().await.unwrap(),
-            _ => commands::run()?,
-        }
-    } else {
-        commands::run()?;
+    let args = program_args::Args::parse();
+
+    match args.subcommand {
+        None | Some(SubCommands::Run) => commands::run()?,
+        Some(SubCommands::Server) => server::serve().await.unwrap(),
+        Some(SubCommands::Translate { path }) => commands::translate_config(&path)?,
+        Some(SubCommands::Generate { path }) => commands::generate_template(&path)?,
     }
 
     Ok(())
