@@ -3,7 +3,7 @@ use clap::Parser;
 use home::home_dir;
 use std::{env::consts::OS, fs, path::Path};
 
-use whisper_keys_engine::{program_args::SubCommands, *};
+use whisper_keys_engine::{program_args::SubCommands, APP_NAME, commands, program_args, server};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
 
     match args.subcommand {
         None | Some(SubCommands::Run) => commands::run()?,
-        Some(SubCommands::Server) => server::serve().await.unwrap(),
+        Some(SubCommands::Server) => server::serve().await,
         Some(SubCommands::Translate { path }) => commands::translate_config(&path)?,
         Some(SubCommands::Generate { path }) => commands::generate_template(&path)?,
     }

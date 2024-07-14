@@ -29,10 +29,8 @@ fn bench_integral(c: &mut Criterion) {
             let buf = pack_lock.keys.get(black_box("keyq")).unwrap();
             let volume = *arc_volume.lock().unwrap();
 
-            let stream_handle_clone = stream_handle.clone();
-            let buf_clone = buf.clone();
             thread::spawn(move || {
-                player::play_sound(stream_handle_clone, buf_clone, volume).unwrap();
+                player::play_sound(&stream_handle, &buf, volume).unwrap();
             });
         });
     });
@@ -42,10 +40,8 @@ fn bench_integral(c: &mut Criterion) {
             let buf = pack_lock.keys.get(black_box("keyq")).unwrap();
             let volume = arc_volume2.load(std::sync::atomic::Ordering::Relaxed) as f32;
 
-            let stream_handle_clone = stream_handle.clone();
-            let buf_clone = buf.clone();
             thread::spawn(move || {
-                player::play_sound(stream_handle_clone, buf_clone, volume).unwrap();
+                player::play_sound(&stream_handle, &buf, volume).unwrap();
             });
         });
     });

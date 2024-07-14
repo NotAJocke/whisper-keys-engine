@@ -16,8 +16,7 @@ use home::home_dir;
 use rodio::OutputStream;
 
 fn ask_for_pack(packs_folder: &PathBuf) -> Result<String> {
-    let available_packs =
-        packs::list_available(&packs_folder).context("Couln't get local packs")?;
+    let available_packs = packs::list_available(packs_folder).context("Couln't get local packs")?;
 
     if available_packs.is_empty() {
         return Err(anyhow::anyhow!("No custom pack found."));
@@ -69,32 +68,31 @@ pub fn run() -> Result<()> {
             .interact_on(&Term::stderr())
             .unwrap_or(0);
 
-        match action {
-            0 => {
-                let current_sound = *cloned_sound_level.lock().unwrap();
-                let input: f32 = Input::new()
-                    .allow_empty(true)
-                    .with_prompt("Enter the new volume")
-                    .default(current_sound)
-                    .show_default(false)
-                    .interact_text()
-                    .unwrap();
+        if action == 0 {
+            let current_sound = *cloned_sound_level.lock().unwrap();
+            let input: f32 = Input::new()
+                .allow_empty(true)
+                .with_prompt("Enter the new volume")
+                .default(current_sound)
+                .show_default(false)
+                .interact_text()
+                .unwrap();
 
-                if input != current_sound {
-                    *cloned_sound_level.lock().unwrap() = input;
-                }
+            let tolerance = 0.1;
+            if (input - current_sound).abs() < tolerance {
+                *cloned_sound_level.lock().unwrap() = input;
             }
-            _ => {
-                let current_pack_name = &*cloned_current_pack.lock().unwrap().name;
-                let pack_name = ask_for_pack(&packs_folder).unwrap();
+        } else {
+            let current_pack_name = &*cloned_current_pack.lock().unwrap().name;
+            let pack_name = ask_for_pack(&packs_folder).unwrap();
 
-                if pack_name != current_pack_name {
-                    let pack = packs::load_pack(&packs_folder, &pack_name).unwrap();
-                    *cloned_sound_level.lock().unwrap() = pack.keys_default_volume;
-                    *cloned_current_pack.lock().unwrap() = pack;
-                }
+            if pack_name != current_pack_name {
+                let pack = packs::load_pack(&packs_folder, &pack_name).unwrap();
+                *cloned_sound_level.lock().unwrap() = pack.keys_default_volume;
+                *cloned_current_pack.lock().unwrap() = pack;
             }
         }
+
         Term::stdout().clear_screen().unwrap();
         println!(
             "Pack selected: {}",
@@ -103,7 +101,7 @@ pub fn run() -> Result<()> {
         println!("Volume set to {}%", cloned_sound_level.lock().unwrap());
     });
 
-    for msg in rx.iter() {
+    for msg in &rx {
         let pack_lock = current_pack.lock().unwrap();
         let buf = pack_lock.keys.get(&msg).unwrap_or_else(|| {
             pack_lock
@@ -112,11 +110,7 @@ pub fn run() -> Result<()> {
                 .context("Couln't get proprety 'unknown' in config file.")
                 .unwrap()
         });
-        player::play_sound(
-            stream_handle.clone(),
-            buf.clone(),
-            *sound_level.lock().unwrap(),
-        )?;
+        player::play_sound(&stream_handle, buf, *sound_level.lock().unwrap())?;
     }
 
     Ok(())
@@ -134,7 +128,7 @@ pub fn generate_template(path: &str) -> Result<()> {
 pub fn translate_config(path: &str) -> Result<()> {
     mechvibes::translate_config(path)?;
 
-    println!("Config translated at location: {}", path);
+    println!("Config translated at location: {path}");
 
     Ok(())
 }

@@ -6,7 +6,6 @@ use std::{fs, path::Path};
 
 use crate::{key_wrapper::KeyWrapper, packs::Config};
 
-#[allow(dead_code)]
 #[derive(Debug, serde::Deserialize)]
 struct MechVibes {
     defines: serde_json::Value,
@@ -26,7 +25,7 @@ pub fn translate_config(path: &str) -> Result<()> {
         .context("Original config file isn't properly formatted")?
     {
         if value != &Value::Null {
-            let k = mechvibes_key_translate(
+            let k = key_translate(
                 key.parse::<u16>()
                     .context("Unknown value in original config")?,
             );
@@ -34,7 +33,7 @@ pub fn translate_config(path: &str) -> Result<()> {
         }
     }
 
-    if template.get("unknown").is_none() {
+    if !template.contains_key("unknown") {
         println!(
             "WARNING: No unknown key found in the config. \
             This means that the keylogger will not be able to \
@@ -44,8 +43,8 @@ pub fn translate_config(path: &str) -> Result<()> {
     }
 
     let pack = Config {
-        creator: "".into(),
-        source: "".into(),
+        creator: String::new(),
+        source: String::new(),
         keys_default_volume: "50".into(),
         keys: template,
     };
@@ -58,7 +57,9 @@ pub fn translate_config(path: &str) -> Result<()> {
 }
 
 // from https://github.com/hainguyents13/mechvibes/blob/master/src/libs/keycodes.js
-pub fn mechvibes_key_translate(code: u16) -> Key {
+#[must_use]
+#[allow(clippy::too_many_lines)]
+pub fn key_translate(code: u16) -> Key {
     match code {
         1 => Key::Escape,
         59 => Key::F1,
@@ -88,7 +89,7 @@ pub fn mechvibes_key_translate(code: u16) -> Key {
         11 => Key::Num0,
 
         12 => Key::Minus,
-        13 => Key::Equal,
+        13 | 3597 => Key::Equal,
         14 => Key::Backspace,
 
         15 => Key::Tab,
@@ -130,7 +131,7 @@ pub fn mechvibes_key_translate(code: u16) -> Key {
         28 => Key::Return,
 
         51 => Key::Comma,
-        52 => Key::Dot,
+        52 | 83 => Key::Dot,
         53 => Key::Slash,
 
         57 => Key::Space,
@@ -139,17 +140,17 @@ pub fn mechvibes_key_translate(code: u16) -> Key {
         70 => Key::ScrollLock,
         3653 => Key::Pause,
 
-        3636 => Key::Insert,
-        3667 => Key::Delete,
-        3655 => Key::Home,
-        3663 => Key::End,
-        3657 => Key::PageUp,
-        3665 => Key::PageDown,
+        3636 | 61010 => Key::Insert,
+        3667 | 61011 => Key::Delete,
+        3655 | 60999 => Key::Home,
+        3663 | 61007 => Key::End,
+        3657 | 61001 => Key::PageUp,
+        3665 | 61009 => Key::PageDown,
 
-        57416 => Key::UpArrow,
-        57419 => Key::LeftArrow,
-        57421 => Key::RightArrow,
-        57424 => Key::DownArrow,
+        57416 | 61000 => Key::UpArrow,
+        57419 | 61003 => Key::LeftArrow,
+        57421 | 61005 => Key::RightArrow,
+        57424 | 61008 => Key::DownArrow,
 
         42 => Key::ShiftLeft,
         54 => Key::ShiftRight,
@@ -164,10 +165,8 @@ pub fn mechvibes_key_translate(code: u16) -> Key {
         3637 => Key::KpDivide,
         55 => Key::KpMultiply,
         74 => Key::KpMinus,
-        3597 => Key::Equal,
         78 => Key::KpPlus,
         3612 => Key::KpReturn,
-        83 => Key::Dot,
 
         79 => Key::Kp1,
         80 => Key::Kp2,
@@ -181,16 +180,6 @@ pub fn mechvibes_key_translate(code: u16) -> Key {
         82 => Key::Kp0,
 
         3666 => Key::Function,
-        61010 => Key::Insert,
-        61011 => Key::Delete,
-        60999 => Key::Home,
-        61007 => Key::End,
-        61001 => Key::PageUp,
-        61009 => Key::PageDown,
-        61000 => Key::UpArrow,
-        61003 => Key::LeftArrow,
-        61005 => Key::RightArrow,
-        61008 => Key::DownArrow,
 
         _ => Key::Unknown(code.into()),
     }

@@ -10,10 +10,10 @@ impl Display for KeyWrapper {
 }
 
 impl KeyWrapper {
-    pub fn to_lowercase(&self) -> String {
+    #[must_use] pub fn to_lowercase(&self) -> String {
         match self.0 {
             Key::Unknown(_) => "unknown".to_string(),
-            _ => format!("{}", self).to_lowercase(),
+            _ => format!("{self}").to_lowercase(),
         }
     }
 }

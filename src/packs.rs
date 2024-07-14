@@ -18,7 +18,7 @@ pub fn list_available(path: &PathBuf) -> Result<Vec<String>> {
             .join(APP_NAME),
         _ => Path::new(&local_dir).join(APP_NAME),
     };*/
-    let items = fs::read_dir(&path).context("Local dir do not exist or is unreadable.")?;
+    let items = fs::read_dir(path).context("Local dir do not exist or is unreadable.")?;
     let subdirs: Vec<OsString> = items
         .filter_map(|d| {
             let entry = d.ok()?;
@@ -32,7 +32,7 @@ pub fn list_available(path: &PathBuf) -> Result<Vec<String>> {
         .collect();
 
     let mut packs: Vec<String> = Vec::new();
-    for dir in subdirs.iter() {
+    for dir in &subdirs {
         let path = Path::new(&path).join(dir);
         let files = fs::read_dir(path).unwrap();
         let filesnames = files
@@ -48,7 +48,7 @@ pub fn list_available(path: &PathBuf) -> Result<Vec<String>> {
             .collect::<Vec<OsString>>();
         let has_config_file = filesnames.contains(&OsString::from("config.json"));
         if has_config_file {
-            packs.push(dir.to_str().unwrap().to_owned())
+            packs.push(dir.to_str().unwrap().to_owned());
         }
     }
 
@@ -89,7 +89,7 @@ pub fn load_pack(folder: &PathBuf, pack_name: &str) -> Result<Pack> {
         .map(|(key, value)| {
             let filepath = path.join(value);
             let file =
-                File::open(&filepath).context(format!("Couldn't load file: {:?}", filepath))?;
+                File::open(&filepath).context(format!("Couldn't load file: {filepath:?}",))?;
             let buf = BufReader::new(file);
             let source = Decoder::new(buf).context("Couldn't decode file")?;
             let buffered = Decoder::buffered(source);

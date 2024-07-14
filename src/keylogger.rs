@@ -28,7 +28,7 @@ pub fn listen(tx: Sender<String>) -> Result<()> {
 
             last_event_type = Some(event.event_type);
         })
-        .map_err(|e| format!("Couldn't start the keylogger.\n\nErr: {:?}", e))
+        .map_err(|e| format!("Couldn't start the keylogger.\n\nErr: {e:?}"))
         .unwrap();
     });
 

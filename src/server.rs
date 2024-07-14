@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::sync::{mpsc, Arc, Mutex};
-use std::{error, thread};
+use std::thread;
 
 use home::home_dir;
 use rodio::OutputStream;
@@ -18,6 +18,8 @@ use self::whisper::{
 };
 
 pub mod whisper {
+    #![allow(clippy::pedantic)]
+
     tonic::include_proto!("whisper");
 }
 
@@ -31,16 +33,15 @@ struct WhisperService {
 #[tonic::async_trait]
 impl WhisperKeys for WhisperService {
     async fn get_packs(&self, _: Request<GetPacksReq>) -> Result<Response<Packs>, Status> {
-        let home_dir = match home_dir() {
-            Some(path) => path,
-            None => return Err(Status::failed_precondition("Couldn't find home directory")),
+        let Some(home_dir) = home_dir() else {
+            return Err(Status::failed_precondition("Couldn't find home directory"));
         };
         let packs_folder = Path::new(&home_dir).join(APP_NAME);
         let packs = packs::list_available(&packs_folder);
 
         match packs {
             Ok(packs) => {
-                *self.packs.lock().unwrap() = packs.clone();
+                self.packs.lock().unwrap().clone_from(&packs);
 
                 let res = Packs { packs };
 
@@ -54,12 +55,11 @@ impl WhisperKeys for WhisperService {
         let pack_name = req.into_inner().pack;
 
         if !self.packs.lock().unwrap().contains(&pack_name) {
-            return Err(Status::not_found(format!("Pack '{}' not found", pack_name)));
+            return Err(Status::not_found(format!("Pack '{pack_name}' not found")));
         }
 
-        let home_dir = match home::home_dir() {
-            Some(path) => path,
-            None => return Err(Status::failed_precondition("Couldn't find home directory")),
+        let Some(home_dir) = home::home_dir() else {
+            return Err(Status::failed_precondition("Couldn't find home directory"));
         };
 
         let packs_folder = Path::new(&home_dir).join(APP_NAME);
@@ -69,7 +69,7 @@ impl WhisperKeys for WhisperService {
             Err(e) => return Err(Status::failed_precondition(e.to_string())),
         };
 
-        let res = SetPackRes {
+        let response = SetPackRes {
             pack: pack_name,
             volume: pack.keys_default_volume,
         };
@@ -77,7 +77,7 @@ impl WhisperKeys for WhisperService {
         *self.volume.lock().unwrap() = pack.keys_default_volume;
         *self.current_pack.lock().unwrap() = Some(pack);
 
-        Ok(Response::new(res))
+        Ok(Response::new(response))
     }
 
     async fn set_volume(
@@ -85,11 +85,11 @@ impl WhisperKeys for WhisperService {
         req: Request<SetVolumeReq>,
     ) -> Result<Response<SetVolumeRes>, Status> {
         let volume = req.into_inner().volume;
-        let res = SetVolumeRes { volume };
+        let response = SetVolumeRes { volume };
 
         *self.volume.lock().unwrap() = volume;
 
-        Ok(Response::new(res))
+        Ok(Response::new(response))
     }
 
     async fn translate(
@@ -97,16 +97,16 @@ impl WhisperKeys for WhisperService {
         req: Request<TranslateReq>,
     ) -> Result<Response<TranslateRes>, Status> {
         let path = req.into_inner().path;
-        let res = translate_config(&path);
+        let response = translate_config(&path);
 
-        match res {
-            Ok(_) => Ok(Response::new(TranslateRes {})),
+        match response {
+            Ok(()) => Ok(Response::new(TranslateRes {})),
             Err(e) => Err(Status::failed_precondition(e.to_string())),
         }
     }
 }
 
-pub async fn serve() -> Result<(), Box<dyn error::Error>> {
+pub async fn serve() {
     let addr = "[::1]:50051".parse().unwrap();
     let whisper = WhisperService::default();
 
@@ -115,12 +115,12 @@ pub async fn serve() -> Result<(), Box<dyn error::Error>> {
         panic!("Couldn't find an audio output channel");
     };
 
-    keylogger::listen(tx)?;
+    keylogger::listen(tx).expect("Couldn't start keylogger");
 
     let cloned_pack = Arc::clone(&whisper.current_pack);
     let cloned_volume = Arc::clone(&whisper.volume);
     thread::spawn(move || {
-        for msg in rx.iter() {
+        for msg in rx {
             if cfg!(debug_assertions) {
                 dbg!(&msg);
             }
@@ -137,12 +137,10 @@ pub async fn serve() -> Result<(), Box<dyn error::Error>> {
                         None => panic!("Couldn't find 'unknown' key in pack"),
                     });
 
-                if let Err(e) = player::play_sound(
-                    stream_handle.clone(),
-                    buf.clone(),
-                    *cloned_volume.lock().unwrap(),
-                ) {
-                    eprintln!("Error playing sound: {}", e);
+                if let Err(e) =
+                    player::play_sound(&stream_handle, buf, *cloned_volume.lock().unwrap())
+                {
+                    eprintln!("Error playing sound: {e}");
                 }
             }
         }
@@ -151,7 +149,6 @@ pub async fn serve() -> Result<(), Box<dyn error::Error>> {
     Server::builder()
         .add_service(WhisperKeysServer::new(whisper))
         .serve(addr)
-        .await?;
-
-    Ok(())
+        .await
+        .unwrap();
 }
