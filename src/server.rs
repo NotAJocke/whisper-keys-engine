@@ -108,6 +108,8 @@ impl WhisperKeys for WhisperService {
 
 pub async fn serve() {
     let addr = "[::1]:50051".parse().unwrap();
+    println!("Server started at {addr}");
+
     let whisper = WhisperService::default();
 
     let (tx, rx) = mpsc::channel();
