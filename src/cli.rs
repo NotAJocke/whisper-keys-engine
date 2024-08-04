@@ -1,6 +1,9 @@
 use std::{
     path::{Path, PathBuf},
-    sync::{mpsc, Arc, Mutex},
+    sync::{
+        atomic::{AtomicU16, Ordering},
+        mpsc, Arc, RwLock,
+    },
     thread,
 };
 
@@ -47,18 +50,17 @@ pub fn run() -> Result<()> {
         pack.name, default_volume
     );
 
-    let current_pack = Arc::new(Mutex::new(pack));
-
     let (tx, rx) = mpsc::channel();
-    let sound_level = Arc::new(Mutex::new(default_volume));
+    let sound_level = Arc::new(AtomicU16::new(default_volume));
+    let current_pack = Arc::new(RwLock::new(pack));
 
     let (_stream, stream_handle) =
         OutputStream::try_default().context("Couln't find an audio output channel")?;
 
     keylogger::listen(tx)?;
 
-    let cloned_sound_level = Arc::clone(&sound_level);
-    let cloned_current_pack = Arc::clone(&current_pack);
+    let sound_level_clone = Arc::clone(&sound_level);
+    let current_pack_clone = Arc::clone(&current_pack);
     thread::spawn(move || loop {
         println!();
         let action = Select::with_theme(&ColorfulTheme::default())
@@ -68,7 +70,7 @@ pub fn run() -> Result<()> {
             .unwrap_or(0);
 
         if action == 0 {
-            let current_sound = *cloned_sound_level.lock().unwrap();
+            let current_sound = sound_level_clone.load(Ordering::Relaxed);
             let input: u16 = Input::new()
                 .allow_empty(true)
                 .with_prompt("Enter the new volume")
@@ -78,29 +80,32 @@ pub fn run() -> Result<()> {
                 .unwrap();
 
             if input != current_sound {
-                *cloned_sound_level.lock().unwrap() = input;
+                sound_level_clone.store(input, Ordering::Relaxed);
             }
         } else {
-            let current_pack_name = &*cloned_current_pack.lock().unwrap().name;
+            let mut pack_lock = current_pack_clone.write().unwrap();
+            let current_pack_name = pack_lock.name.as_str();
             let pack_name = ask_for_pack(&packs_folder).unwrap();
 
             if pack_name != current_pack_name {
                 let pack = packs::load_pack(&packs_folder, &pack_name).unwrap();
-                *cloned_sound_level.lock().unwrap() = pack.keys_default_volume;
-                *cloned_current_pack.lock().unwrap() = pack;
+                sound_level_clone.store(pack.keys_default_volume, Ordering::Relaxed);
+                *pack_lock = pack;
             }
         }
 
         Term::stdout().clear_screen().unwrap();
         println!(
             "Pack selected: {}\nVolume set to {}%",
-            cloned_current_pack.lock().unwrap().name,
-            cloned_sound_level.lock().unwrap()
+            current_pack_clone.read().unwrap().name,
+            sound_level_clone.load(Ordering::Relaxed)
         );
     });
 
+    let sound_level_clone2 = Arc::clone(&sound_level);
+    let current_pack_clone2 = Arc::clone(&current_pack);
     for msg in &rx {
-        let pack_lock = current_pack.lock().unwrap();
+        let pack_lock = current_pack_clone2.read().unwrap();
         let buf = pack_lock.keys.get(&msg).unwrap_or_else(|| {
             pack_lock
                 .keys
@@ -108,7 +113,11 @@ pub fn run() -> Result<()> {
                 .context("Couln't get proprety 'unknown' in config file.")
                 .unwrap()
         });
-        player::play_sound(&stream_handle, buf, *sound_level.lock().unwrap())?;
+        player::play_sound(
+            &stream_handle,
+            buf,
+            sound_level_clone2.load(Ordering::Relaxed),
+        )?;
     }
 
     Ok(())
