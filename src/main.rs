@@ -3,7 +3,11 @@ use clap::Parser;
 use home::home_dir;
 use std::{env::consts::OS, fs, path::Path};
 
-use whisper_keys_engine::{commands, program_args, program_args::SubCommands, server, APP_NAME};
+use whisper_keys_engine::{
+    cli, mechvibes,
+    program_args::{self, SubCommands},
+    server, APP_NAME,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -12,10 +16,24 @@ async fn main() -> anyhow::Result<()> {
     let args = program_args::Args::parse();
 
     match args.subcommand {
-        None | Some(SubCommands::Run) => commands::run()?,
+        None | Some(SubCommands::Run) => cli::run()?,
         Some(SubCommands::Server) => server::serve().await,
-        Some(SubCommands::Translate { path }) => commands::translate_config(&path)?,
-        Some(SubCommands::Generate { name, path }) => commands::generate_template(&name, &path)?,
+        Some(SubCommands::Translate { path }) => {
+            mechvibes::translate_config(&path)?;
+
+            println!("Config translated at location: {path}");
+        }
+        Some(SubCommands::Generate { name, path }) => {
+            let pack_path = Path::new(&path).join(name);
+            fs::create_dir_all(&pack_path).context("Failed to create the pack directory")?;
+            let template = include_str!("config_template.json5");
+            fs::write(pack_path.join("config.json5"), template)?;
+
+            println!(
+                "Generated template at location: {}",
+                pack_path.to_str().unwrap()
+            );
+        }
     }
 
     Ok(())

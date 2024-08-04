@@ -1,12 +1,11 @@
 use std::{
-    fs,
     path::{Path, PathBuf},
     sync::{mpsc, Arc, Mutex},
     thread,
 };
 
 use crate::{
-    keylogger, mechvibes,
+    keylogger,
     packs::{self},
     player, APP_NAME,
 };
@@ -112,28 +111,6 @@ pub fn run() -> Result<()> {
         });
         player::play_sound(&stream_handle, buf, *sound_level.lock().unwrap())?;
     }
-
-    Ok(())
-}
-
-pub fn generate_template(name: &str, path: &str) -> Result<()> {
-    let pack_path = Path::new(path).join(name);
-    fs::create_dir_all(&pack_path).context("Failed to create the pack directory")?;
-    let template = include_str!("config_template.json5");
-    fs::write(pack_path.join("config.json5"), template)?;
-
-    println!(
-        "Generated template at location: {}",
-        pack_path.to_str().unwrap()
-    );
-
-    Ok(())
-}
-
-pub fn translate_config(path: &str) -> Result<()> {
-    mechvibes::translate_config(path)?;
-
-    println!("Config translated at location: {path}");
 
     Ok(())
 }

@@ -1,7 +1,7 @@
 #![allow(clippy::missing_errors_doc)]
 #![allow(clippy::missing_panics_doc)]
 
-pub mod commands;
+pub mod cli;
 pub mod key_wrapper;
 pub mod keylogger;
 pub mod mechvibes;

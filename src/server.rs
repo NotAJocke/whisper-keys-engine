@@ -9,7 +9,7 @@ use tonic::{transport::Server, Request, Response, Status};
 use whisper::whisper_keys_server::{WhisperKeys, WhisperKeysServer};
 use whisper::{GetPacksReq, Packs};
 
-use crate::commands::translate_config;
+use crate::mechvibes::translate_config;
 use crate::packs::{self, Pack};
 use crate::{keylogger, player, APP_NAME};
 
