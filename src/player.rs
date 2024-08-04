@@ -7,11 +7,11 @@ use rodio::{source::Buffered, Decoder, OutputStreamHandle, Sink};
 pub fn play_sound(
     stream_handle: &OutputStreamHandle,
     buf: &Buffered<Decoder<BufReader<File>>>,
-    volume: f32,
+    volume: u16,
 ) -> Result<()> {
     let sink = Sink::try_new(stream_handle).context("Coulnd't create an audio sink.")?;
 
-    sink.set_volume(volume * 0.01);
+    sink.set_volume(f32::from(volume) * 0.01);
     sink.append(buf.clone());
     sink.detach();
 

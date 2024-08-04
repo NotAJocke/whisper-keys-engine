@@ -71,7 +71,7 @@ pub struct Config {
 #[derive(Clone)]
 pub struct Pack {
     pub name: String,
-    pub keys_default_volume: f32,
+    pub keys_default_volume: u16,
     pub keys: FxHashMap<String, Buffered<Decoder<BufReader<File>>>>,
 }
 
@@ -101,7 +101,7 @@ pub fn load_pack(folder: &PathBuf, pack_name: &str) -> Result<Pack> {
         name: pack_name.to_owned(),
         keys_default_volume: parsed_config
             .keys_default_volume
-            .parse::<f32>()
+            .parse::<u16>()
             .context("Couldn't parse default volume")?,
         keys: pack_keys,
     };

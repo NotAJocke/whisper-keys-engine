@@ -50,7 +50,7 @@ pub fn run() -> Result<()> {
     let current_pack = Arc::new(Mutex::new(pack));
 
     let (tx, rx) = mpsc::channel();
-    let sound_level: Arc<Mutex<f32>> = Arc::new(Mutex::new(default_volume));
+    let sound_level = Arc::new(Mutex::new(default_volume));
 
     let (_stream, stream_handle) =
         OutputStream::try_default().context("Couln't find an audio output channel")?;
@@ -69,7 +69,7 @@ pub fn run() -> Result<()> {
 
         if action == 0 {
             let current_sound = *cloned_sound_level.lock().unwrap();
-            let input: f32 = Input::new()
+            let input: u16 = Input::new()
                 .allow_empty(true)
                 .with_prompt("Enter the new volume")
                 .default(current_sound)
@@ -77,8 +77,7 @@ pub fn run() -> Result<()> {
                 .interact_text()
                 .unwrap();
 
-            let tolerance = 0.1;
-            if (input - current_sound).abs() < tolerance {
+            if input != current_sound {
                 *cloned_sound_level.lock().unwrap() = input;
             }
         } else {
@@ -94,10 +93,10 @@ pub fn run() -> Result<()> {
 
         Term::stdout().clear_screen().unwrap();
         println!(
-            "Pack selected: {}",
-            cloned_current_pack.lock().unwrap().name
+            "Pack selected: {}\nVolume set to {}%",
+            cloned_current_pack.lock().unwrap().name,
+            cloned_sound_level.lock().unwrap()
         );
-        println!("Volume set to {}%", cloned_sound_level.lock().unwrap());
     });
 
     for msg in &rx {

@@ -17,12 +17,12 @@ message SetPackReq { string pack = 1; }
 
 message SetPackRes {
   string pack = 1;
-  float volume = 2;
+  uint32 volume = 2;
 }
 
-message SetVolumeReq { float volume = 1; }
+message SetVolumeReq { uint32 volume = 1; }
 
-message SetVolumeRes { float volume = 1; }
+message SetVolumeRes { uint32 volume = 1; }
 
 message TranslateReq { string path = 1; }
 

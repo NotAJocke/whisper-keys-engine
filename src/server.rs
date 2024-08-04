@@ -27,7 +27,7 @@ pub mod whisper {
 struct WhisperService {
     pub packs: Arc<Mutex<Vec<String>>>,
     pub current_pack: Arc<Mutex<Option<Pack>>>,
-    pub volume: Arc<Mutex<f32>>,
+    pub volume: Arc<Mutex<u16>>,
 }
 
 #[tonic::async_trait]
@@ -71,7 +71,7 @@ impl WhisperKeys for WhisperService {
 
         let response = SetPackRes {
             pack: pack_name,
-            volume: pack.keys_default_volume,
+            volume: u32::from(pack.keys_default_volume),
         };
 
         *self.volume.lock().unwrap() = pack.keys_default_volume;
@@ -87,7 +87,7 @@ impl WhisperKeys for WhisperService {
         let volume = req.into_inner().volume;
         let response = SetVolumeRes { volume };
 
-        *self.volume.lock().unwrap() = volume;
+        *self.volume.lock().unwrap() = u16::try_from(volume).unwrap_or(u16::MAX);
 
         Ok(Response::new(response))
     }
