@@ -1,3 +1,5 @@
+# ⚠️ This repository is no longer maintained, as the project is currently being rewritten [here](https://github.com/NotAJocke/whisper-keys.git)
+
 # Whisper Keys Engine
 **This is only the engine behind [Whisper Keys](https://github.com/NotAJocke/whisper-keys).**
 
